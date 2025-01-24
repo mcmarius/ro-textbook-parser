@@ -10,6 +10,8 @@ pdf2 = pymupdf.open('data/Manual_Cls 8_Lb Ro_1_ArtKlett.pdf')
 pdf3 = pymupdf.open('data/Manual_Cls 8_Lb Ro_2_Artemis.pdf')
 pdf4 = pymupdf.open('data/Manual_Cls 6_Lb Ro_1_EDP.pdf')
 pdf5 = pymupdf.open('data/Manual_Cls 6_Lb Ro_3_Litera.pdf')
+pdf6 = pymupdf.open('data/Manual_Cls 6_Lb Ro_4_CD Press.pdf')
+pdf7 = pymupdf.open('data/Manual_Cls 6_Lb Ro_5_Booklet.pdf')
 # page_lines = pdf.get_page_text(11).split('\n')
 
 
@@ -24,18 +26,25 @@ def find_chapter(pdf):
             fixed_lines = fix_lines(pdf.get_page_text(i).split('\n'))
             to_skip = 0
             for i, line in enumerate(fixed_lines):
-                if 'UNITATEA' in line:
+                if 'UNITATEA' in line or 'Unitatea' in line:
                     # print(f'got {i} -> {line}')
-                    if '. . .' in line:
-                        sep = '. . .'
-                    elif '/' in line:
+                    if '.  . ' in line[-10:]:
+                        sep = '\.  \. '
+                    elif '. .' in line[-10:]:
+                        sep = '\. \.'
+                    elif ' / ' in line[-10:]:
+                        sep = ' / '
+                    elif '/' in line[-10:]:
                         sep = '/'
                     else:
                         sep = ' '
-                    page_in_line = line.rsplit(sep, 1)[1].strip()
-                    if page_in_line[0].isdigit():
-                        # print(f'sep {sep}, pg {page_in_line}')
-                        chapter_pages.append(page_in_line)
+                    # page_in_line = line.rsplit(sep, 1)[1].strip()
+                    candidates = re.findall(f'{sep}\s*(\d+)', line[22:])
+                    if len(candidates) >= 1:
+                        page_in_line = candidates[0].strip()
+                        if page_in_line[0].isdigit():
+                            # print(f'sep {sep}, pg {page_in_line}')
+                            chapter_pages.append(page_in_line)
                     else:
                         # skip the pages for the previous found chapter
                         if i < to_skip:
@@ -56,7 +65,8 @@ def get_toc_pages(lines):
     # pages = [line for line in lines.split('  ') if line and '/' in line]
     page_lines = [line.strip() for line in lines.split('    ') if line and ('/' in line or '...' in line or '. .' in line or ' .   .' in line or ' .  .' in line or ' – ' in line)]
     page_lines = [small_line for line in page_lines for small_line in line.split('\n') if small_line]
-    page_lines = [small_line for line in page_lines for small_line in line.split('\n') if small_line]
+    if len(page_lines) < 10:  # only whitespace is the separator; fortunately, no numbers in titles
+        return [num for line in lines.split('\n') for num in re.findall('(\d{2,})', line)]
     # print(page_lines)
     for line in page_lines:
         sep = '..'
@@ -64,14 +74,14 @@ def get_toc_pages(lines):
             sep = ' .   .'
         elif ' .  .' in line:
             sep = ' .  .'
-        elif '...' in line:
-            sep = '...'
         elif ' . ' in line:
             sep = ' . '
         elif ' / ' in line:
             sep = ' / '
         elif '/' in line:
             sep = '/'
+        elif '...' in line:
+            sep = '...'
         elif ' – ' in line:
             sep = ' – '
         #if len(line.rsplit(sep, 1)) < 2:
@@ -83,7 +93,7 @@ def get_toc_pages(lines):
             # print(f'got line {line}')
             if not page_in_line:
                 continue
-            #print(f'got pg {page_in_line}')
+            #print(f'got pg {page_in_line} sep {sep}')
             if page_in_line[0].isdigit():
                 #print(f'got > {page_in_line}')
                 #print(f"got >> {''.join(x for x in page_in_line if x.isdigit())}")
@@ -145,6 +155,8 @@ def chapter_tests():
     assert(find_chapter(pdf3) == [18, 38, 70, 96, 122, 152])
     assert(find_chapter(pdf4) == [13, 39, 63, 97, 137, 169])
     assert(find_chapter(pdf5) == [11, 51, 83, 113, 141, 167])
+    assert(find_chapter(pdf6) == [20, 52, 84, 112, 154])
+    assert(find_chapter(pdf7) == [11, 57, 103, 143, 179])
 
 def toc_tests():
     assert(find_toc(pdf1) == [14, 16, 22, 24, 27, 29, 31, 34, 35, 36, 37, 38, 39, 41, 42, 44, 53, 55, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 81, 83, 84, 86, 89, 92, 94, 96, 97, 99, 101, 103, 105, 106, 108, 110, 112, 117, 118, 120, 124, 127, 128, 130, 133, 136, 138, 139, 141, 142, 143, 144, 146, 148, 150, 156, 157, 161, 163, 165, 168, 169, 172, 173, 176, 177, 180, 182, 184, 189, 195, 197, 199, 201, 203, 205, 207, 209, 211, 214, 218, 220, 221, 224])
@@ -152,4 +164,6 @@ def toc_tests():
     assert(find_toc(pdf3) == [13, 18, 19, 21, 22, 23, 27, 29, 31, 33, 35, 38, 39, 48, 49, 54, 57, 59, 61, 63, 66, 70, 71, 72, 77, 79, 81, 85, 87, 91, 92, 96, 97, 101, 102, 104, 107, 109, 112, 114, 117, 119, 122, 124, 128, 129, 131, 133, 136, 139, 144, 148, 152, 154, 161, 163, 166, 170, 175, 177, 181, 184, 187, 189, 190, 192])
     assert(find_toc(pdf4) == [11, 13, 14, 16, 22, 24, 26, 30, 33, 35, 37, 39, 40, 42, 44, 46, 49, 51, 54, 57, 60, 62, 63, 64, 66, 69, 71, 73, 76, 80, 83, 84, 88, 93, 95, 97, 98, 100, 106, 108, 110, 112, 116, 117, 119, 123, 128, 131, 135, 137, 138, 140, 144, 149, 152, 157, 158, 161, 164, 167, 169, 170, 172, 178, 181, 184, 186, 188, 189, 191, 192, 193, 196, 200, 202, 205, 207])
     assert(find_toc(pdf5) == [11, 12, 15, 16, 18, 21, 24, 26, 28, 31, 34, 35, 37, 39, 40, 45, 47, 49, 51, 52, 55, 57, 58, 60, 63, 65, 66, 68, 70, 71, 73, 75, 78, 80, 82, 83, 84, 85, 86, 87, 88, 90, 91, 93, 94, 95, 96, 99, 100, 103, 104, 106, 108, 109, 110, 112, 113, 114, 115, 116, 118, 120, 121, 123, 125, 127, 128, 130, 133, 135, 137, 139, 140, 141, 142, 144, 145, 146, 149, 151, 152, 154, 157, 160, 162, 164, 166, 167, 168, 169, 171, 173, 175, 178, 180, 182, 184, 185, 190, 192])
+    assert(find_toc(pdf6) == [14, 20, 22, 24, 26, 27, 30, 32, 40, 44, 52, 54, 56, 58, 60, 62, 64, 68, 76, 80, 84, 88, 90, 92, 93, 95, 96, 98, 100, 102, 106, 112, 114, 116, 118, 122, 124, 126, 128, 131, 133, 136, 139, 140, 144, 154, 156, 158, 160, 162, 168, 169, 171, 176, 178, 180, 184, 188])
+    assert(find_toc(pdf7) == [11, 12, 24, 28, 33, 35, 38, 40, 43, 46, 49, 53, 55, 57, 58, 70, 74, 77, 83, 86, 89, 91, 93, 96, 98, 101, 103, 104, 110, 113, 117, 119, 123, 124, 126, 127, 131, 133, 136, 138, 141, 143, 144, 156, 160, 162, 167, 169, 171, 174, 176, 178, 179, 180, 187, 192, 195, 199, 203, 205, 210, 212, 214, 216, 219, 220, 221, 222, 223, 224])
 
