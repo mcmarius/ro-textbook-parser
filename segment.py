@@ -9,8 +9,10 @@ MIN_TOC_PAGE = 3
 MAX_TOC_PAGE = 10
 MIN_SEC_PER_PAGE = 15
 
-DATA_DIR = 'data'
-book_list = [book for book in os.listdir(DATA_DIR) if book.endswith('.pdf')]
+DATA_DIR = 'data/'
+book_list = sorted(
+    [book for book in os.listdir(DATA_DIR) if book.endswith('.pdf')],
+    key=lambda book: list(cfg.keys()).index(book))
 
 
 SORT_NEEDS = {
@@ -29,19 +31,39 @@ def safe_int(nr):
         return None
 
 
-def is_toc_page(pdf_page):
-    return len([x for x in re.split('(\d{1,}[^\.][– ]?[\d]?)\n', pdf_page) if x and x[0].isdigit()]) >= MIN_SEC_PER_PAGE and pdf_page.count(';') < 20 and 'Varianta tipărită' not in pdf_page
+def is_toc_page(pdf_page, min_sec):
+    return len([x for x in re.split('(\d{1,}[^\.][– ]?[\d]?)\n', pdf_page) if x and x[0].isdigit()]) >= min_sec and pdf_page.count(';') < 20 and 'Varianta tipărită' not in pdf_page and 'TIPĂRIT' not in pdf_page
+
+
+def unit_offset(line):
+    kws = ['UNITATEA ', 'Unitatea ', 'CAPITOLUL ']
+    for kw in kws:
+        if kw in line: #  and line.find(kw) < len(line) // 2:
+            return line.find(kw)
+    return 0
+
+
+def init_chapter_heuristic(line):
+    kws = ['UNITATEA', 'Unitatea', 'CAPITOLUL']
+    for kw in kws:
+        if kw in line:
+            return kw
+    regexes = ['2-8']
 
 
 def find_chapter(pdf):
     chapter_pages = []
+    #picked_heuristic = None
+    min_sec = cfg[pdf.name.strip(DATA_DIR)].get('min_sec', MIN_SEC_PER_PAGE)
     for i in range(MIN_TOC_PAGE, MAX_TOC_PAGE):
-        if is_toc_page(pdf.get_page_text(i)):
+        if is_toc_page(pdf.get_page_text(i), min_sec):
             fixed_lines = fix_lines(pdf.get_page_text(i, sort=SORT_CHAPTER_NEEDS.get(pdf.name, False)).split('\n'))
             to_skip = 0
-            #print(fixed_lines)
+            # print(fixed_lines)
             for i, line in enumerate(fixed_lines):
-                if 'UNITATEA' in line or 'Unitatea' in line or re.findall('[2-8]\t', line):
+                #if not picked_heuristic:
+                #    picked_heuristic = init_chapter_heuristic(line)
+                if 'UNITATEA' in line or 'Unitatea' in line or 'CAPITOLUL' in line or (re.findall('[2-8]\t', line) and re.findall('([2-8]\t)', line)[0][:-1] == line.split('\t')[0]):
                     #print(f'got {i} -> {line}')
                     if '.  . ' in line[-10:]:
                         sep = '\.  \. '
@@ -54,9 +76,9 @@ def find_chapter(pdf):
                     else:
                         sep = ' '
                     if 'DE ÎNVĂȚĂRE' in line:
-                        line_lim = 22
+                        line_lim = 22 + unit_offset(line)
                     else:
-                        line_lim = 11
+                        line_lim = 11 + unit_offset(line)
                     # page_in_line = line.rsplit(sep, 1)[1].strip()
                     candidates = re.findall(f'{sep}\s*(\d+)', line[line_lim:])
                     if len(candidates) >= 1:
@@ -71,7 +93,9 @@ def find_chapter(pdf):
                         # we need to find the first section of this chapter
                         for j in range(i + 1, len(fixed_lines)):
                             possible_page = re.findall('\d{2,}$', fixed_lines[j])
-                            #print(f"possible: {possible_page}")
+                            if not possible_page:
+                                possible_page = re.findall('^(\d{2,}) (?:L\d{1,2}|\t)', fixed_lines[j])
+                            # print(f"possible: {possible_page}")
                             if possible_page:
                                 chapter_pages.append(possible_page[0])
                                 to_skip = j
@@ -106,10 +130,10 @@ def get_toc_pages(lines):
             sep = ' . '
         elif ' / ' in line:
             sep = ' / '
-        elif '/' in line:
-            sep = '/'
         elif '...' in line:
             sep = '...'
+        elif '/' in line:
+            sep = '/'
         elif ' – ' in line:
             sep = ' – '
         elif re.findall('\d{2,}-\d{2,}', line):
@@ -153,12 +177,14 @@ def get_toc_pages(lines):
 
 def find_toc(pdf):
     toc_pages = []
+    min_sec = cfg[pdf.name.strip(DATA_DIR)].get('min_sec', MIN_SEC_PER_PAGE)
     for i in range(MIN_TOC_PAGE, MAX_TOC_PAGE):
-        if is_toc_page(pdf.get_page_text(i)):
+        if is_toc_page(pdf.get_page_text(i), min_sec):
+            # print(f'{i} is toc page')
             toc_page_list = get_toc_pages(pdf.get_page_text(i, sort=SORT_NEEDS.get(pdf.name, False)))
             # fixed_lines = fix_lines(pdf.get_page_text(i).split('\n'))
             # toc_page_list = get_toc_pages(fixed_lines) # get_toc_pages(pdf.get_page_text(i))
-            if len(toc_page_list) >= MIN_SEC_PER_PAGE:
+            if len(toc_page_list) >= min_sec:
                 toc_pages += toc_page_list
     return sorted(list(set([int(x) for x in toc_pages if len(x) > 1 and len(x) < 4 and int(x) < len(pdf)])))
 
@@ -198,12 +224,19 @@ def book_tests(find_func, test_key):
             pdf = pdf_cache[book]
             # print('[DEBUG] Using pdf book cache')
         else:
-            pdf = pymupdf.open(f'{DATA_DIR}/{book}')
+            pdf = pymupdf.open(os.path.join(DATA_DIR, book))
             pdf_cache[book] = pdf
         try:
-            assert(find_func(pdf) == cfg[book][test_key])
+            elems = find_func(pdf)
+            #print(len(elems))
+            #print(f'book {book}')
+            assert(elems == cfg[book][test_key])
         except AssertionError:
             print(f'[ERROR] Error for {book} ({test_key})')
+            # print(f'expected {cfg[book][test_key]}')
+            # print(f'got {elems}')
+            print(f'missing: {[x for x in cfg[book][test_key] if x not in elems]}')
+            print(f'extra: {[x for x in elems if x not in cfg[book][test_key]]}')
 
 def chapter_tests():
     book_tests(find_chapter, 'chapters')
