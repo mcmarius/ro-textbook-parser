@@ -43,15 +43,22 @@ def exercises_by_chapter(pdf):
         chapter_start = chapter
         chapter_end = chapters[i + 1]
         for page in range(chapter_start, chapter_end):
-            raw_lines = fix_file_lines(pdf, page).split('\n')
+            raw_lines = fix_file_lines(pdf, page)
             for j, line in enumerate(raw_lines):
-                if '\x07' in line:
-                    print(line)
+                # if '\x07' in line:
+                #     print(line)
                 matching_lines = re.findall(regex, line)
                 # remove false positives
                 # remove short matches (dictionary definitions)
                 # TODO (??): add extra newline between each non-consecutive exercises
                 matching_lines = [match_line.strip() for match_line in matching_lines if valid_exercise(match_line) and valid_span(match_line, line)]
+                #new_lines = []
+                #for match_line in matching_lines:
+                #    if valid_exercise(match_line) and valid_span(match_line, line):
+                #        new_lines.append(match_line.strip())
+                #    else:
+                #        new_lines.append('\n')
                 exercises += matching_lines
+                # exercises += new_lines
         with open(f"exercises/{file_name.strip('.pdf')}-{i+1}.txt", 'w') as f:
             f.write('\n'.join(exercises))
