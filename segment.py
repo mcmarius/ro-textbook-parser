@@ -4,25 +4,7 @@ import re
 import pymupdf
 
 from config import cfg
-
-MIN_TOC_PAGE = 3
-MAX_TOC_PAGE = 10
-MIN_SEC_PER_PAGE = 15
-
-DATA_DIR = 'data/'
-book_list = sorted(
-    [book for book in os.listdir(DATA_DIR) if book.endswith('.pdf')],
-    key=lambda book: list(cfg.keys()).index(book))
-
-
-SORT_NEEDS = {
-    'data/Manual_Cls 6_Lb Ro_3_Litera.pdf': True,
-    'data/Manual_Cls 7_Lb Ro_4_Litera.pdf': True,
-    'data/Manual_Cls 7_Lb Ro_5_Intuitext.pdf': True
-}
-SORT_CHAPTER_NEEDS = {
-    'data/Manual_Cls 7_Lb Ro_5_Intuitext.pdf': True
-}
+from constants import *
 
 def safe_int(nr):
     try:
@@ -202,21 +184,30 @@ def fix_lines(lines):
         if not line:
             continue
         if i > 0 and (lines[i-1].endswith('\xad') or lines[i-1].endswith('-')):
-            fixed_lines[-1] = fixed_lines[-1][:-1] + line
+        # if i > 0 and (lines[i-1].endswith('-')):
+            fixed_lines[-1] = fixed_lines[-1].strip('-') + line
         elif len(fixed_lines) > 0 and interrupted_line(fixed_lines[-1]):
             fixed_lines[-1] += line
         elif len(fixed_lines) > 0 and fixed_lines[-1][-1].isalpha() and line[0].isalpha():
             fixed_lines[-1] += ' ' + line
         else:
             fixed_lines.append(line)
-        fixed_lines[-1] = fixed_lines[-1].replace('\xad', '')
+        fixed_lines[-1] = fixed_lines[-1].replace('\xad', '').replace('\x07', '')
     return fixed_lines
+
+
+def fix_file_lines(pdf, page):
+    return fix_lines(pdf.get_page_text(page).split('\n'))
+
+
+def join_fix_file_lines(pdf, page):
+    return '\n'.join(fix_file_lines(pdf, page))
 
 
 pdf_cache = {}
 def book_tests(find_func, test_key):
     global pdf_cache
-    for book in book_list:
+    for book in BOOK_LIST:
         if not cfg.get(book) or not cfg[book].get(test_key):
             print(f'[WARNING] Missing config for {book} ({test_key} test)')
             continue
