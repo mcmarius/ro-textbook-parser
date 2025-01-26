@@ -20,22 +20,13 @@ def is_toc_page(pdf_page, min_sec):
 def unit_offset(line):
     kws = ['UNITATEA ', 'Unitatea ', 'CAPITOLUL ']
     for kw in kws:
-        if kw in line: #  and line.find(kw) < len(line) // 2:
+        if kw in line:
             return line.find(kw)
     return 0
 
 
-def init_chapter_heuristic(line):
-    kws = ['UNITATEA', 'Unitatea', 'CAPITOLUL']
-    for kw in kws:
-        if kw in line:
-            return kw
-    regexes = ['2-8']
-
-
 def find_chapter(pdf):
     chapter_pages = []
-    #picked_heuristic = None
     min_sec = cfg[pdf.name.strip(DATA_DIR)].get('min_sec', MIN_SEC_PER_PAGE)
     for i in range(MIN_TOC_PAGE, MAX_TOC_PAGE):
         if is_toc_page(pdf.get_page_text(i), min_sec):
@@ -43,8 +34,6 @@ def find_chapter(pdf):
             to_skip = 0
             # print(fixed_lines)
             for i, line in enumerate(fixed_lines):
-                #if not picked_heuristic:
-                #    picked_heuristic = init_chapter_heuristic(line)
                 if 'UNITATEA' in line or 'Unitatea' in line or 'CAPITOLUL' in line or (re.findall('[2-8]\t', line) and re.findall('([2-8]\t)', line)[0][:-1] == line.split('\t')[0]):
                     #print(f'got {i} -> {line}')
                     if '.  . ' in line[-10:]:
@@ -61,7 +50,6 @@ def find_chapter(pdf):
                         line_lim = 22 + unit_offset(line)
                     else:
                         line_lim = 11 + unit_offset(line)
-                    # page_in_line = line.rsplit(sep, 1)[1].strip()
                     candidates = re.findall(f'{sep}\s*(\d+)', line[line_lim:])
                     if len(candidates) >= 1:
                         page_in_line = candidates[0].strip()
@@ -87,8 +75,6 @@ def find_chapter(pdf):
 
 def get_toc_pages(lines):
     pages = []
-    # / pages
-    # pages = [line for line in lines.split('  ') if line and '/' in line]
     page_lines = [line.strip() for line in lines.split('    ') if line and ('/' in line or '...' in line or '. .' in line or ' .   .' in line or ' .  .' in line or '.  . ' in line or ' – ' in line or re.findall('\d{2,}', line) or re.findall('\d{2,}-\d{2,}', line))]
     #print(page_lines)
     #print('\n----1------\n')
@@ -129,7 +115,6 @@ def get_toc_pages(lines):
             continue
         for pg in line.rsplit(sep):
             page_in_line = pg.strip()
-            # page_in_line = line.rsplit(sep, 1)[1].strip()
             # print(f'got line {line}')
             if not page_in_line:
                 continue
@@ -184,7 +169,6 @@ def fix_lines(lines):
         if not line:
             continue
         if i > 0 and (lines[i-1].endswith('\xad') or lines[i-1].endswith('-')):
-        # if i > 0 and (lines[i-1].endswith('-')):
             fixed_lines[-1] = fixed_lines[-1].strip('-') + line
         elif len(fixed_lines) > 0 and interrupted_line(fixed_lines[-1]):
             fixed_lines[-1] += line
