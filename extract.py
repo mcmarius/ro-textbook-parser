@@ -48,7 +48,7 @@ def exercises_by_chapter(pdf):
         for page in range(chapter_start, chapter_end):
             raw_lines = fix_file_lines(pdf, page)
             for j, line in enumerate(raw_lines):
-                if " puncte" in line and len(line) < 15:
+                if " puncte " in line or (" puncte" in line and len(line) < 15):
                     continue
                 # if '\x07' in line:
                 #     print(line)
