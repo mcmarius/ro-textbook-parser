@@ -157,6 +157,11 @@ def find_toc(pdf):
 
 
 def interrupted_line(line):
+    #if line == '':
+    #    return False
+    # print(f'line is {type(line)}')
+    if not line:
+        return False
     if line[-1] == ' ' or\
        line[-1] == '/':
         return True
@@ -168,20 +173,24 @@ def fix_lines(lines):
     for i, line in enumerate(lines):
         if not line:
             continue
+        #print(f'line: {fixed_lines}')
         if i > 0 and (lines[i-1].endswith('\xad') or lines[i-1].endswith('-')):
             fixed_lines[-1] = fixed_lines[-1].strip('-') + line
         elif len(fixed_lines) > 0 and interrupted_line(fixed_lines[-1]):
             fixed_lines[-1] += line
-        elif len(fixed_lines) > 0 and fixed_lines[-1][-1].isalpha() and line[0].isalpha():
+        elif len(fixed_lines) > 0 and fixed_lines[-1][-1].isalpha() and (line[0].isalpha() or line[0].isspace()):
             fixed_lines[-1] += ' ' + line
         else:
             fixed_lines.append(line)
+        fixed_lines[-1] = re.sub(' {4,}', ' ', fixed_lines[-1])
         fixed_lines[-1] = fixed_lines[-1].replace('\xad', '').replace('\x07', '')
+        if fixed_lines[-1] == '':
+            fixed_lines.pop()
     return fixed_lines
 
 
 def fix_file_lines(pdf, page):
-    return fix_lines(pdf.get_page_text(page).split('\n'))
+    return fix_lines(pdf.get_page_text(page, sort=SORT_EXTRACT_NEEDS.get(pdf.name, False)).split('\n'))
 
 
 def join_fix_file_lines(pdf, page):

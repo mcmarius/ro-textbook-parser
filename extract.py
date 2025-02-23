@@ -9,7 +9,15 @@ from constants import *
 from segment import fix_file_lines
 
 
+# from constants import *
+# import pymupdf
+# import extract
+
 # pdf = pymupdf.open(DATA_DIR + BOOK_LIST[0])
+# extract.exercises_by_chapter(pdf)
+
+# import importlib
+# importlib.reload(extract)
 
 def valid_exercise(line):
     if 'MANUAL' in line:
@@ -31,13 +39,16 @@ def exercises_by_chapter(pdf):
     file_name = pdf.name.strip(DATA_DIR)
     chapters = deepcopy(cfg[file_name]['chapters'])
     # assume the limit for the last chapter is the last section
-    chapters.append(cfg[file_name]['sections'][-1])
+    if cfg[file_name]['sections']:
+        chapters.append(cfg[file_name]['sections'][-1])
+    else:
+        chapters.append(pdf.page_count)
     regex = '(?:\d{1,2}\.|[a-p]\.)(?:\t| ){1,3}\w+.+[^\n]'
     sub_regex = '(?:\d{1,2}\.|[a-k]\.)(?:\t| ){1,3}\w+.+[^\n]'
-    if 'ArtKlett' in file_name:
+    if 'ArtKlett' in file_name and 'Cls 7' not in file_name:
         regex = '(?:\d{1,2}|[a-p])\t ?\w+.+[^\n]'
         sub_regex = '(?:\d{1,2}|[a-k])\t ?\w+.+[^\n]'
-    elif 'Artemis' in file_name:
+    elif 'Artemis' in file_name or 'EDP' in file_name:
         regex = '(?:\d{1,2}\.?|[a-p]\.?)(?:\t| ){1,3}(?:„|…| )*\w+.+[^\n]'
         sub_regex = '(?:\d{1,2}\.?|[a-k]\.?)(?:\t| ){1,3}(?:„|…| )*\w+.+[^\n]'
     # print(f'[DEBUG] chapters: {chapters}')

@@ -19,3 +19,7 @@ SORT_NEEDS = {
 SORT_CHAPTER_NEEDS = {
     'data/Manual_Cls 7_Lb Ro_5_Intuitext.pdf': True
 }
+
+SORT_EXTRACT_NEEDS = {
+    'data/Manual_Cls 6_Lb Ro_1_EDP.pdf': True
+}
