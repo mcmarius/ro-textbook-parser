@@ -1,5 +1,35 @@
 
 
+gemini2cfg = {
+  'booklet_5_exercises': 'Manual_Cls 5_Lb Ro_1_Booklet.pdf',
+  'booklet_6_exercises': 'Manual_Cls 6_Lb Ro_5_Booklet.pdf',
+  # 'booklet_7_exercises': 'Manual_Cls 7_Lb Ro_1_Booklet.pdf',
+  'artklett_5_exercises': 'Manual_Cls 5_Lb Ro_2_ArtKlett.pdf',
+  'artklett_6_exercises': 'Manual_Cls 6_Lb Ro_2_ArtKlett.pdf',
+  'artklett_7_exercises': 'Manual_Cls 7_Lb Ro_2_ArtKlett.pdf',
+  'artklett_8_exercises': 'Manual_Cls 8_Lb Ro_1_ArtKlett.pdf',
+  'corint_5_exercises': 'Manual_Cls 5_Lb Ro_3_Corint.pdf',
+  'corint_6_exercises': 'Manual_Cls 6_Lb Ro_6_Corint.pdf',
+  'corint_8_exercises': 'Manual_Cls 8_Lb Ro_3_Corint.pdf',
+  'litera_5_exercises': 'Manual_Cls 5_Lb Ro_4_Litera.pdf',
+  'litera_6_exercises': 'Manual_Cls 6_Lb Ro_3_Litera.pdf',
+  'litera_7_exercises': 'Manual_Cls 7_Lb Ro_4_Litera.pdf',
+  'intuitext_5_exercises': 'Manual_Cls 5_Lb Ro_5_Intuitext.pdf',
+  'intuitext_6_exercises': 'Manual_Cls 6_Lb Ro_8_Intuitext.pdf',
+  'intuitext_7_exercises': 'Manual_Cls 7_Lb Ro_5_Intuitext.pdf',
+  'cdpress_5_exercises': 'Manual_Cls 5_Lb Ro_6_CDPress.pdf',
+  'cdpress_6_exercises': 'Manual_Cls 6_Lb Ro_4_CD Press.pdf',
+  'cdpress_7_exercises': 'Manual_Cls 7_Lb Ro_6_CDPress.pdf',
+  'edp_6_exercises': 'Manual_Cls 6_Lb Ro_1_EDP.pdf',
+  'edp_7_exercises': 'Manual_Cls 7_Lb Ro_3_EDP.pdf',
+  'paralela45_6_exercises': 'Manual_Cls 6_Lb Ro_7_Paralela 45.pdf',
+  'paralela45_7_exercises': 'Manual_Cls 7_Lb Ro_7_Paralela45.pdf',
+  'arslibri_7_exercises': 'Manual_Cls 7_Lb Ro_8_ArsLibri.pdf',
+  'aramis_7_exercises': 'Manual_Cls 7_Lb Ro_9_Aramis.pdf',
+  'artemis_8_exercises': 'Manual_Cls 8_Lb Ro_2_Artemis.pdf'
+}
+
+
 cfg = {
     'Manual_Cls 5_Lb Ro_1_Booklet.pdf': {
         'chapters': [11, 37, 59, 91, 119, 139],
@@ -18,7 +48,7 @@ cfg = {
         'sections': [],
     },
     'Manual_Cls 5_Lb Ro_5_Intuitext.pdf': {
-        'chapters': [], # requires OCR
+        'chapters': [13, 44, 75, 111, 154, 182], # requires OCR
         'sections': [],
     },
     'Manual_Cls 5_Lb Ro_6_CDPress.pdf': {
