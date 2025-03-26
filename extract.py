@@ -57,7 +57,10 @@ def exercises_by_chapter(pdf):
         chapter_start = chapter
         chapter_end = chapters[i + 1]
         for page in range(chapter_start, chapter_end):
-            raw_lines = fix_file_lines(pdf, page)
+            try:
+                raw_lines = fix_file_lines(pdf, page + 2)
+            except IndexError:
+                continue
             for j, line in enumerate(raw_lines):
                 if " puncte " in line or (" puncte" in line and len(line) < 15):
                     continue
@@ -91,3 +94,9 @@ def exercises_by_chapter(pdf):
                 exercises += new_lines
         with open(f"exercises/{file_name.strip('.pdf')}-{i+1}.txt", 'w') as f:
             f.write('\n'.join(exercises))
+
+
+if __name__ == "__main__":
+    for book in BOOK_LIST:
+        pdf = pymupdf.open(DATA_DIR + book)
+        exercises_by_chapter(pdf)

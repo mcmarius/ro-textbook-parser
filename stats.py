@@ -119,7 +119,6 @@ def stats_for_lines(lines, duplicates, allow_ties):
     else:
         categories = list(kws.keys())
     tally = defaultdict(lambda: 0)
-    # TODO: also tally by chapters
     ambiguous_count = 0
     for line in lines:
         exercise = line.lower().replace('ş', 'ș').replace('ţ', 'ț')
