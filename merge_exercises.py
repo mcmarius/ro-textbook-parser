@@ -142,6 +142,31 @@ def remove_quotes(texts):
         processed_texts.append(new_text)
     return processed_texts
 
+
+def write_examples_to_excel(file_name, rows):
+    workbook = xlsxwriter.Workbook(file_name)
+    worksheet = workbook.add_worksheet()
+    cell_format = workbook.add_format({'text_wrap': True, 'font_name': 'Arial', 'font_size': 10})
+    cell_format.set_text_wrap()
+    worksheet.set_column_pixels('B:B', 100, cell_format)
+    worksheet.set_column_pixels('C:C', 70, cell_format)
+    worksheet.set_column_pixels('D:D', 70, cell_format)
+    worksheet.set_column_pixels('E:E', 100, cell_format)
+    worksheet.set_column_pixels('F:F', 1600, cell_format)
+    # header row
+    worksheet.set_row_pixels(0, 50)
+    worksheet.write_row(
+        'A1',
+        data=['id', 'publisher', 'class', 'chapter', 'bloom_label', 'exercise'],
+        cell_format=cell_format
+    )
+    worksheet.freeze_panes(1, 0)
+    for i, exercise in enumerate(rows):
+        worksheet.set_row_pixels(i + 1, min(400, max(30, 20 * (exercise[4].count('\n')))))
+        worksheet.write_row(f"A{i + 2}", data=[i+1] + exercise, cell_format=cell_format)
+    workbook.close()
+
+
 def merge_exercises():
     all_exercises = []
     for exercise_file in os.listdir(GEMINI_PATH):
@@ -164,30 +189,10 @@ def merge_exercises():
         all_exercises += [[publisher, klass, chapter, None, exercise] for exercise in processed_texts]
     # all_exercises += read_file('exercises/misc/all_remaining_exercises.txt')
     all_exercises = sorted(all_exercises, key=lambda x: (x[1], x[0], x[2]))
-
-    workbook = xlsxwriter.Workbook(f'all_exercises_merged.xlsx')
-    worksheet = workbook.add_worksheet()
-    cell_format = workbook.add_format({'text_wrap': True, 'font_name': 'Arial', 'font_size': 10})
-    cell_format.set_text_wrap()
-    worksheet.set_column_pixels('B:B', 100, cell_format)
-    worksheet.set_column_pixels('C:C', 70, cell_format)
-    worksheet.set_column_pixels('D:D', 70, cell_format)
-    worksheet.set_column_pixels('E:E', 100, cell_format)
-    worksheet.set_column_pixels('F:F', 1600, cell_format)
-    # header row
-    worksheet.set_row_pixels(0, 50)
-    worksheet.write_row(
-        'A1',
-        data=['id', 'publisher', 'class', 'chapter', 'bloom_label', 'exercise'],
-        cell_format=cell_format
-    )
-    worksheet.freeze_panes(1, 0)
-    for i, exercise in enumerate(all_exercises):
-        worksheet.set_row_pixels(i + 1, min(400, max(30, 20 * (exercise[4].count('\n')))))
-        worksheet.write_row(f"A{i + 2}", data=[i+1] + exercise, cell_format=cell_format)
-    workbook.close()
+    write_examples_to_excel('all_exercises_merged.xlsx', all_exercises)
 
 
-# merge_gemini_exercises()
-# deduplicate_exercises()
-merge_exercises()
+if __name__ == "__main__":
+    # merge_gemini_exercises()
+    # deduplicate_exercises()
+    merge_exercises()

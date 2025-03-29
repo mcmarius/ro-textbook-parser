@@ -4,11 +4,16 @@ import re
 # from stats import read_book
 from constants import *
 # from copy import deepcopy
-from collections import defaultdict
+from collections import defaultdict, Counter
 # from collections import Counter
+
+from openpyxl import load_workbook
+
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
+
+
 sns.set_theme()
 sns.set_context('paper', font_scale=2)
 # aa = books_stats()
@@ -18,13 +23,13 @@ sns.set_context('paper', font_scale=2)
 # aaa = read_book(BOOK_LIST[0], 1)
 # www = [w for line in aaa for w in line.split() if w[-1] in ['ă', 'i', 'e'] and len(w) > 4]
 
-def books_plots(allow_ties=True, by_chapter=False):
+def books_plots(allow_ties=True, by_chapter=False, with_colors=False):
     # duplicates_values = [False, True]
     # allow_ties_values = [False, True]
     # for duplicates in duplicates_values:
     # for allow_ties in allow_ties_values:
     # by_chapter = False
-    stats = books_stats(True, allow_ties, by_chapter=by_chapter)
+    stats = books_stats(True, allow_ties, by_chapter=by_chapter, with_colors=with_colors)
     if by_chapter:
         id_vars = ['grade', 'publisher', 'chapter']
     else:
@@ -37,7 +42,80 @@ def books_plots(allow_ties=True, by_chapter=False):
         sns.catplot(col='publisher', x='grade', y='count', data=dfm, hue='bloom_cat', kind='bar', col_wrap=2)
     plt.show()
 
-def books_stats(duplicates=True, allow_ties=True, by_chapter=False):
+
+def books_stats(duplicates=True, allow_ties=True, by_chapter=False, with_colors=False):
+    all_stats = defaultdict(lambda: [])
+    kw_file = 'keywords.json'
+    suffix = ''
+    if with_colors:
+        suffix += '_colored'
+        kw_file = 'keywords_colored.json'
+    if allow_ties:
+        suffix += '_with_ties'
+    in_file = f"all_exercises_labeled{suffix}.xlsx"
+    exercises_wb = load_workbook(in_file, read_only=True)
+    # discard id
+    exercises = [exercise[1:] for exercise in exercises_wb.worksheets[0].values]
+    # discard header
+    exercises = exercises[1:]
+    # TODO: decide how to handle "with ties"
+    if allow_ties:
+        exercises = count_in_all_categories(exercises)
+    all_books = BOOK_LIST
+    selected_books = []
+    for book in all_books:
+        for publisher in ['ArtKlett', 'Booklet', 'Corint', 'Litera']:
+            if publisher in book:
+                selected_books.append(book)
+    all_stats = defaultdict(lambda: [])
+    default_labels = {'apply': 0, 'analyze': 0, 'create': 0, 'evaluate': 0, 'remember': 0, 'understand': 0}
+    sort_idx = {'remember': 1, 'understand': 2, 'apply': 3, 'analyze': 4, 'evaluate': 5, 'create': 6}
+    for book in selected_books:
+        grade, _subject, _idx, publisher = re.findall('Manual_Cls (\d{1,2})_([\w| ]+)_(\d{1,2})_(\w+)\.pdf', book)[0]
+        if by_chapter:
+            num_chapters = len(cfg[book]['chapters'])
+            for chapter in range(1, num_chapters + 1):
+                labels = [exercise[3] for exercise in exercises if exercise[0] == publisher.lower() and exercise[1] == grade and int(exercise[2]) == chapter]
+                tally = Counter(labels)
+                if not tally:
+                    continue
+                all_stats['grade'].append(grade)
+                all_stats['publisher'].append(publisher)
+                all_stats['chapter'].append(chapter)
+                for stat, value in sorted(tally.items(), key=lambda x: sort_idx[x[0]]):
+                    all_stats[stat].append(value)
+                # handle missing levels
+                for stat, value in sorted(default_labels.items(), key=lambda x: sort_idx[x[0]]):
+                    if stat not in tally:
+                        all_stats[stat].append(value)
+        else:
+            labels = [exercise[3] for exercise in exercises if exercise[0] == publisher.lower() and exercise[1] == grade]
+            tally = Counter(labels)
+            if not tally:
+                continue
+            all_stats['grade'].append(grade)
+            all_stats['publisher'].append(publisher)
+            for stat, value in sorted(tally.items(), key=lambda x: sort_idx[x[0]]):
+                all_stats[stat].append(value)
+        # print(f"stats for {book}: {tally}")
+        # stats = stats_for_lines(selected_exercises, duplicates, allow_ties, kw_file)
+    return all_stats
+
+
+def count_in_all_categories(exercises):
+    new_exercises = []
+    for exercise in exercises:
+        new_exercise = list(exercise)
+        if '/' in exercise[3]:
+            for label in exercise[3].split('/'):
+                new_exercise[3] = label
+                new_exercises.append(new_exercise)
+        else:
+            new_exercises.append(new_exercise)
+    return new_exercises
+
+
+def books_stats_old(duplicates=True, allow_ties=True, by_chapter=False):
     all_books = BOOK_LIST
     selected_books = []
     for book in all_books:
@@ -46,17 +124,16 @@ def books_stats(duplicates=True, allow_ties=True, by_chapter=False):
                 selected_books.append(book)
     all_stats = defaultdict(lambda: [])
     for book in selected_books:
+        grade, subject, idx, publisher = re.findall('Manual_Cls (\d{1,2})_([\w| ]+)_(\d{1,2})_(\w+)\.pdf', book)[0]
         if by_chapter:
-            stats = book_stats_chapter(book, duplicates=duplicates, allow_ties=allow_ties)
+            stats = book_stats_chapter_old(book, duplicates=duplicates, allow_ties=allow_ties)
             for chapter_stats in stats:
-                grade, subject, idx, publisher = re.findall('Manual_Cls (\d{1,2})_([\w| ]+)_(\d{1,2})_(\w+)\.pdf', book)[0]
                 all_stats['grade'].append(grade)
                 all_stats['publisher'].append(publisher)
                 for stat in chapter_stats:
                     all_stats[stat].append(chapter_stats[stat])
         else:
-            stats = book_stats(book, duplicates=duplicates, allow_ties=allow_ties)
-            grade, subject, idx, publisher = re.findall('Manual_Cls (\d{1,2})_([\w| ]+)_(\d{1,2})_(\w+)\.pdf', book)[0]
+            stats = book_stats_old(book, duplicates=duplicates, allow_ties=allow_ties)
             all_stats['grade'].append(grade)
             all_stats['publisher'].append(publisher)
             for stat in stats:
@@ -78,10 +155,10 @@ def read_book(book, num_chapters):
     return lines
 
 
-def read_kw(duplicates=False):
+def read_kw(kw_file='keywords.json', duplicates=False):
     kws = {}
     idx = {}
-    with open("keywords.json") as f:
+    with open(kw_file) as f:
         kws = json.load(f)
     for kw in kws:
         words = kws[kw]
@@ -95,25 +172,25 @@ def read_kw(duplicates=False):
     return kws, idx
 
 
-def book_stats_chapter(book, duplicates=False, allow_ties=False):
+def book_stats_chapter_old(book, duplicates=False, allow_ties=False):
     num_chapters = len(cfg[book]['chapters'])
     stats = []
     for chapter in range(1, num_chapters + 1):
         book_lines = read_chapter(book, chapter)
-        chapter_stats = stats_for_lines(book_lines, duplicates, allow_ties)
+        chapter_stats = stats_for_lines_old(book_lines, duplicates, allow_ties)
         chapter_stats.update({'chapter': chapter})
         stats.append(chapter_stats)
     return stats
 
 
-def book_stats(book, duplicates=False, allow_ties=False):
+def book_stats_old(book, duplicates=False, allow_ties=False):
     num_chapters = len(cfg[book]['chapters'])
     book_lines = read_book(book, num_chapters)
-    return stats_for_lines(book_lines, duplicates, allow_ties)
+    return stats_for_lines_old(book_lines, duplicates, allow_ties)
 
 
-def stats_for_lines(lines, duplicates, allow_ties):
-    kws, idx = read_kw(duplicates)
+def stats_for_lines_old(lines, duplicates, allow_ties, kw_file='keywords.json'):
+    kws, idx = read_kw(kw_file, duplicates)
     if duplicates:
         categories = [key for key in kws.keys() if '/' not in key]
     else:
