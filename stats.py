@@ -23,6 +23,8 @@ sns.set_context('paper', font_scale=2)
 # aaa = read_book(BOOK_LIST[0], 1)
 # www = [w for line in aaa for w in line.split() if w[-1] in ['ă', 'i', 'e'] and len(w) > 4]
 
+
+
 def books_plots(allow_ties=True, by_chapter=False, with_colors=False):
     # duplicates_values = [False, True]
     # allow_ties_values = [False, True]
@@ -40,7 +42,17 @@ def books_plots(allow_ties=True, by_chapter=False, with_colors=False):
         sns.catplot(col='publisher', row='grade', x='chapter', y='count', data=dfm, hue='bloom_cat', kind='bar') # , col_wrap=2)
     else:
         sns.catplot(col='publisher', x='grade', y='count', data=dfm, hue='bloom_cat', kind='bar', col_wrap=2)
-    plt.show()
+    # plt.show()
+    file_name = 'counts'
+    if by_chapter:
+        file_name += '_by_chapter'
+    if allow_ties:
+        file_name += '_ties'
+    else:
+        file_name += '_no_ties'
+    if with_colors:
+        file_name += '_colored'
+    plt.savefig(f"plots/{file_name}.pdf", bbox_inches='tight', pad_inches=0.1)
 
 
 def books_stats(duplicates=True, allow_ties=True, by_chapter=False, with_colors=False):
@@ -75,7 +87,7 @@ def books_stats(duplicates=True, allow_ties=True, by_chapter=False, with_colors=
         if by_chapter:
             num_chapters = len(cfg[book]['chapters'])
             for chapter in range(1, num_chapters + 1):
-                labels = [exercise[3] for exercise in exercises if exercise[0] == publisher.lower() and exercise[1] == grade and int(exercise[2]) == chapter]
+                labels = [exercise[4] for exercise in exercises if exercise[0] == publisher.lower() and exercise[1] == grade and int(exercise[2]) == chapter]
                 tally = Counter(labels)
                 if not tally:
                     continue
@@ -89,7 +101,7 @@ def books_stats(duplicates=True, allow_ties=True, by_chapter=False, with_colors=
                     if stat not in tally:
                         all_stats[stat].append(value)
         else:
-            labels = [exercise[3] for exercise in exercises if exercise[0] == publisher.lower() and exercise[1] == grade]
+            labels = [exercise[4] for exercise in exercises if exercise[0] == publisher.lower() and exercise[1] == grade]
             tally = Counter(labels)
             if not tally:
                 continue
@@ -106,9 +118,9 @@ def count_in_all_categories(exercises):
     new_exercises = []
     for exercise in exercises:
         new_exercise = list(exercise)
-        if '/' in exercise[3]:
-            for label in exercise[3].split('/'):
-                new_exercise[3] = label
+        if '/' in exercise[4]:
+            for label in exercise[4].split('/'):
+                new_exercise[4] = label
                 new_exercises.append(new_exercise)
         else:
             new_exercises.append(new_exercise)
@@ -223,3 +235,10 @@ def stats_for_lines_old(lines, duplicates, allow_ties, kw_file='keywords.json'):
     if ambiguous_count > 0:
         print(f'skipped {ambiguous_count} ambiguous exercises')
     return dict(sorted(tally.items(), key=lambda cat_data: categories.index(cat_data[0])))
+
+
+if __name__ == "__main__":
+    for chapter in [False, True]:
+        for tie in [False, True]:
+            for color in [False, True]:
+                books_plots(tie, chapter, color)

@@ -1,9 +1,13 @@
+import json
+import os
 import re
 import string
 
 import pymupdf
 
 from copy import deepcopy
+
+from tqdm import tqdm
 
 from constants import *
 from segment import fix_file_lines
@@ -61,6 +65,7 @@ def exercises_by_chapter(pdf):
                 raw_lines = fix_file_lines(pdf, page + 2)
             except IndexError:
                 continue
+            page_exercises = []
             for j, line in enumerate(raw_lines):
                 if " puncte " in line or (" puncte" in line and len(line) < 15):
                     continue
@@ -79,24 +84,33 @@ def exercises_by_chapter(pdf):
                         subexercise = re.findall(sub_regex, match_line[start_span + 5:])
                         if subexercise and valid_exercise(subexercise[0]) and valid_span(subexercise[0], match_line):
                             stop_span = current_exercise.find(subexercise[0])
-                            new_lines.append(current_exercise[:stop_span].strip())
+                            new_exercise = current_exercise[:stop_span].strip()
+                            new_lines.append(new_exercise)
                             # print(f"subexercise found, stopping at [{new_lines[-1]}]")
                             # print(f"\tsubexercise is {subexercise[0]}")
                             current_exercise = deepcopy(subexercise[0])
                         else:
                             if not new_lines or new_lines[-1] != current_exercise.strip():
                                 # print(f"<<<< no more - adding [{current_exercise}]")
-                                new_lines.append(current_exercise.strip())
+                                new_exercise = current_exercise.strip()
+                                new_lines.append(new_exercise)
                             break
                 #    else:
                 #        new_lines.append('\n')
                 # exercises += matching_lines
-                exercises += new_lines
-        with open(f"exercises/{file_name.strip('.pdf')}-{i+1}.txt", 'w') as f:
-            f.write('\n'.join(exercises))
+                page_exercises += new_lines
+            if page_exercises:
+                exercises.append({"page_number": page + 1, "questions_list": [{"number": i + 1, "text": text} for i, text in enumerate(page_exercises)]})
+        if not exercises:
+            print(f"No exercises for {file_name}")
+        with open(f"exercises/json/{file_name.strip('.pdf')}-{i+1}.json", 'w') as f:
+            json.dump(exercises, f, ensure_ascii=False, indent=2)
+        # with open(f"exercises/{file_name.strip('.pdf')}-{i+1}.txt", 'w') as f:
+        #     f.write('\n'.join(exercises))
 
 
 if __name__ == "__main__":
-    for book in BOOK_LIST:
+    os.makedirs('exercises/json', exist_ok=True)
+    for book in tqdm(BOOK_LIST):
         pdf = pymupdf.open(DATA_DIR + book)
         exercises_by_chapter(pdf)

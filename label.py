@@ -71,7 +71,7 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
     skipped_exercises = 0
     total_exercises = 0
     for i, row in tqdm(list(enumerate(ws_examples.values))):
-        id_, publisher, klass, chapter, bloom_label, exercise = row
+        id_, publisher, klass, chapter, page, bloom_label, exercise = row
         # tokenize example
         if not exercise:
             # print("Empty exercise")
@@ -99,7 +99,7 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
             bloom_label = '/'.join(max_cats)
         else:
             bloom_label = max_cat
-        labeled_examples.append([publisher, klass, chapter, bloom_label, exercise])
+        labeled_examples.append([publisher, klass, chapter, page, bloom_label, exercise])
     print(f"Exercises skipped (no verbs): {skipped_exercises} / {total_exercises}")
     print(f"Ambiguous examples: {ambiguous_exercises_count}")
     out_file = f"all_exercises_labeled{suffix}.xlsx"

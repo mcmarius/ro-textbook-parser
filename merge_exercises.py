@@ -36,6 +36,8 @@ def fix_exercise_diacritics(exercise):
 
 def merge_gemini_exercises():
     base_path = "Extracted_Gemini_AI"
+    os.makedirs('exercises_gemini/txt', exist_ok=True)
+    os.makedirs('exercises_gemini/json', exist_ok=True)
     for publisher in os.listdir(base_path):
         for klass in os.listdir(f"{base_path}/{publisher}"):
             if not os.path.isdir(f"{base_path}/{publisher}/{klass}"):
@@ -64,7 +66,7 @@ def merge_gemini_exercises():
 
 
 def deduplicate_exercises():
-    exercises_path = 'exercises'
+    os.makedirs('exercises/remaining', exist_ok=True)
     total = 0
     remaining = 0
     total_gemini = 0
@@ -80,12 +82,14 @@ def deduplicate_exercises():
 
 def deduplicate_exercise(exercise_file):
     exercises_gemini = []
-    exercises_path = 'exercises'
+    exercises_path = 'exercises/json'
     with open(f"{GEMINI_PATH}/{exercise_file}") as json_file:
         exercises_gemini = json.load(json_file)
     book, chapter = re.findall('(.+)(-\d)', exercise_file)[0]
-    chapter_exercise_file = gemini2cfg[book].strip('.pdf') + chapter + '.txt'
-    exercises = [fix_diacritics(e) for e in read_file(f"{exercises_path}/{chapter_exercise_file}")]
+    chapter_exercise_file = gemini2cfg[book].strip('.pdf') + chapter + '.json'
+    # exercises = [fix_diacritics(e) for e in read_file(f"{exercises_path}/{chapter_exercise_file}")]
+    with open(f"{exercises_path}/{chapter_exercise_file}") as json_file:
+        exercises_json = json.load(json_file)
     all_page_exercises = []
     # search for exercises as substring in gemini exercises
     common_exercises = []
@@ -93,10 +97,25 @@ def deduplicate_exercise(exercise_file):
         page_exercises = [q['text'] for q in page['questions_list']]
         all_page_exercises += page_exercises
         for e1 in page_exercises:
-            common_exercises += [exercise for exercise in exercises if exercise in e1]
+            for exercise_group in exercises_json:
+                for exercise in exercise_group['questions_list']:
+                    if exercise['text'] in e1:
+                        common_exercises.append(exercise['text'])
+            # we use this convoluted logic to ensure we do not accidentally include an exercise that would be found somewhere else
+            # common_exercises += [exercise for exercise in exercises if exercise in e1]
     # total_gemini += len(all_page_exercises)
-    totalp = len(exercises)
-    exercises = [exercise for exercise in exercises if exercise not in common_exercises]
+    totalp = sum(len(exercises['questions_list']) for exercises in exercises_json)
+    # exercises = [exercise for exercise in exercises if exercise not in common_exercises]
+    exercises = []
+    exercises_txt = []
+    for exercise_group in exercises_json:
+        remaining_exercises = []
+        for exercise in exercise_group['questions_list']:
+            if exercise['text'] not in common_exercises:
+                remaining_exercises.append(exercise)
+                exercises_txt.append(exercise['text'])
+        if remaining_exercises:
+            exercises.append({"page_number": exercise_group['page_number'], "questions_list": remaining_exercises})
 
     # search for gemini exercises as substring in ours - no such overlaps
     # common_exercises = []
@@ -108,39 +127,51 @@ def deduplicate_exercise(exercise_file):
     common_exercises = []
     common_exercises_gemini = []
     for e1 in all_page_exercises:
-        lengths = pylcs.lcs2_of_list(e1, exercises)
+        lengths = pylcs.lcs2_of_list(e1, exercises_txt)
         for i, length in enumerate(lengths):
-            if length > min(30, min(len(e1), len(exercises[i])) / 2):
-                common_exercises.append(exercises[i])
+            if length > min(30, min(len(e1), len(exercises_txt[i])) / 2):
+                common_exercises.append(exercises_txt[i])
                 common_exercises_gemini.append(e1)
-    exercises = [exercise for exercise in exercises if exercise not in common_exercises]
+    exercises_txt = [exercise for exercise in exercises_txt if exercise not in common_exercises]
     remaining_gemini = [exercise for exercise in all_page_exercises if exercise not in common_exercises_gemini]
+
+    exercises_to_write = []
+    for exercise_group in exercises:
+        remaining_exercises = []
+        for exercise in exercise_group['questions_list']:
+            if exercise['text'] not in common_exercises:
+                remaining_exercises.append(exercise)
+        if remaining_exercises:
+            exercises_to_write.append({"page_number": exercise_group['page_number'], "questions_list": remaining_exercises})
+
     # if exercises and len(exercises) != totalp:
     #     print(f"{len(exercises)} remaining out of {totalp}")
     #     # remaining += len(exercises)
     #     # total += totalp
 
     # remove quoted text (??)
-    if exercises:
+    if exercises_to_write:
         with open(f"exercises/remaining/{chapter_exercise_file}", "w") as f:
-            f.write('\n'.join(exercises))
-    return len(exercises), totalp, len(all_page_exercises), len(remaining_gemini)
+            json.dump(exercises_to_write, f, ensure_ascii=False, indent=2)
+            # f.write('\n'.join(exercises))
+    return len(exercises_txt), totalp, len(all_page_exercises), len(remaining_gemini)
 
 
-def remove_quotes(texts):
+def remove_quotes(text):
     start_quotes = ['\'', '\"', '„']
     end_quotes = ['\'', '\"', '“']
     regexes = []
     for start_quote in start_quotes:
         for end_quote in end_quotes:
             regexes.append('(' + start_quote + '.+?' + end_quote + ')')
-    processed_texts = []
-    for text in texts:
-        new_text = text
-        for regex in regexes:
-            new_text = re.sub(regex, '', new_text)
-        processed_texts.append(new_text)
-    return processed_texts
+    #processed_texts = []
+    #for text in texts:
+    new_text = text
+    for regex in regexes:
+        new_text = re.sub(regex, '', new_text)
+    #    processed_texts.append(new_text)
+    #return processed_texts
+    return new_text
 
 
 def write_examples_to_excel(file_name, rows):
@@ -151,18 +182,19 @@ def write_examples_to_excel(file_name, rows):
     worksheet.set_column_pixels('B:B', 100, cell_format)
     worksheet.set_column_pixels('C:C', 70, cell_format)
     worksheet.set_column_pixels('D:D', 70, cell_format)
-    worksheet.set_column_pixels('E:E', 100, cell_format)
-    worksheet.set_column_pixels('F:F', 1600, cell_format)
+    worksheet.set_column_pixels('E:E', 70, cell_format)
+    worksheet.set_column_pixels('F:F', 100, cell_format)
+    worksheet.set_column_pixels('G:G', 1600, cell_format)
     # header row
     worksheet.set_row_pixels(0, 50)
     worksheet.write_row(
         'A1',
-        data=['id', 'publisher', 'class', 'chapter', 'bloom_label', 'exercise'],
+        data=['id', 'publisher', 'class', 'chapter', 'page', 'bloom_label', 'exercise'],
         cell_format=cell_format
     )
     worksheet.freeze_panes(1, 0)
     for i, exercise in enumerate(rows):
-        worksheet.set_row_pixels(i + 1, min(400, max(30, 20 * (exercise[4].count('\n')))))
+        worksheet.set_row_pixels(i + 1, min(400, max(30, 20 * (exercise[5].count('\n')))))
         worksheet.write_row(f"A{i + 2}", data=[i+1] + exercise, cell_format=cell_format)
     workbook.close()
 
@@ -176,23 +208,24 @@ def merge_exercises():
         with open(f"{GEMINI_PATH}/{exercise_file}") as json_file:
             exercises_gemini = json.load(json_file)
         for page in exercises_gemini:
-            texts = [q['text'] for q in page['questions_list']]
-            processed_texts = remove_quotes(texts)
-            all_exercises += [[publisher, klass, chapter, None, text] for text in processed_texts]
-        chapter_exercise_file = gemini2cfg[book].strip('.pdf') + '-' + chapter + '.txt'
+            texts = [{"text": remove_quotes(q['text']), "page": page["page_number"]} for q in page['questions_list']]
+            # processed_texts = remove_quotes(texts)
+            all_exercises += [[publisher, klass, chapter, entry['page'], None, entry['text']] for entry in texts]
+        chapter_exercise_file = gemini2cfg[book].strip('.pdf') + '-' + chapter + '.json'
         remaining_exercises = []
         try:
-            remaining_exercises = read_file(f"exercises/remaining/{chapter_exercise_file}")
+            with open(f"exercises/remaining/{chapter_exercise_file}") as json_file:
+                remaining_exercises = json.load(json_file)
         except FileNotFoundError:
             print(f"skipping {chapter_exercise_file}")
-        processed_texts = remove_quotes(remaining_exercises)
-        all_exercises += [[publisher, klass, chapter, None, exercise] for exercise in processed_texts]
-    # all_exercises += read_file('exercises/misc/all_remaining_exercises.txt')
-    all_exercises = sorted(all_exercises, key=lambda x: (x[1], x[0], x[2]))
+        for page in remaining_exercises:
+            texts = [{"text": remove_quotes(q['text']), "page": page["page_number"]} for q in page['questions_list']]
+            all_exercises += [[publisher, klass, chapter, entry['page'], None, entry['text']] for entry in texts]
+    all_exercises = sorted(all_exercises, key=lambda x: (x[1], x[0], x[2], x[3]))
     write_examples_to_excel('all_exercises_merged.xlsx', all_exercises)
 
 
 if __name__ == "__main__":
     # merge_gemini_exercises()
-    # deduplicate_exercises()
+    deduplicate_exercises()
     merge_exercises()
