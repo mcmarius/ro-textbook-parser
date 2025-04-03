@@ -18,16 +18,20 @@ nlp = spacy.load("ro_core_news_lg")
 TOKENIZED_EXERCISES = {}
 
 
-def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, skip_ambiguous_exercises=True):
+def read_labels(file_name, include_colored_labels, skip_ambiguous_labels):
     DEFAULT_COLOR = '00000000'
-    wb_labels = load_workbook('Verbe-cu-etichetă-p1.xlsx', read_only=True)
+    wb_labels = load_workbook(file_name, read_only=True)
     ws_labels = wb_labels.worksheets[0]
     labeled_verbs = {}
     for i, row in enumerate(ws_labels.iter_rows(min_row=2)):
         # if i == 0:
         #     continue
+        if len(row) < 2:
+            continue
         verb, label = row
         if verb.fill.bgColor.rgb != DEFAULT_COLOR and not include_colored_labels:
+            continue
+        if not label or not label.value:
             continue
         if '/' in label.value and skip_ambiguous_labels:
             continue
@@ -36,9 +40,20 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
             fixed_label = 'understand'
         labeled_verbs[verb.value] = fixed_label
     wb_labels.close()
+    return labeled_verbs
+
+
+def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, skip_ambiguous_exercises=True):
+    labeled_verbs1 = read_labels('Verbe-cu-etichetă-p1.xlsx', include_colored_labels, skip_ambiguous_labels)
     labels = defaultdict(lambda: [])
-    for verb, label in labeled_verbs.items():
+    for verb, label in labeled_verbs1.items():
         labels[label].append(verb)
+    labeled_verbs2 = read_labels('Verbe-cu-etichetă-p2.xlsx', include_colored_labels, skip_ambiguous_labels)
+    for verb, label in labeled_verbs2.items():
+        labels[label].append(verb)
+    labeled_verbs = {}
+    labeled_verbs.update(labeled_verbs1)
+    labeled_verbs.update(labeled_verbs2)
     suffix = ''
     if include_colored_labels:
         suffix += '_colored'
