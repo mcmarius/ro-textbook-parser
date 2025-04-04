@@ -41,7 +41,7 @@ def books_plots(allow_ties=True, by_chapter=False, with_colors=False):
     if by_chapter:
         sns.catplot(col='publisher', row='grade', x='chapter', y='count', data=dfm, hue='bloom_cat', kind='bar') # , col_wrap=2)
     else:
-        sns.catplot(col='publisher', x='grade', y='count', data=dfm, hue='bloom_cat', kind='bar', col_wrap=2)
+        sns.catplot(col='publisher', x='grade', y='count', data=dfm, hue='bloom_cat', kind='bar', col_wrap=4)
     # plt.show()
     file_name = 'counts'
     if by_chapter:
@@ -76,7 +76,7 @@ def books_stats(duplicates=True, allow_ties=True, by_chapter=False, with_colors=
     all_books = BOOK_LIST
     selected_books = []
     for book in all_books:
-        for publisher in ['ArtKlett', 'Booklet', 'Corint', 'Litera']:
+        for publisher in ['ArtKlett', 'Booklet', 'Corint', 'Litera', 'CDPress', 'EDP', 'Intuitext', 'Paralela45', 'ArsLibri', 'Aramis', 'Artemis']:
             if publisher in book:
                 selected_books.append(book)
     all_stats = defaultdict(lambda: [])
