@@ -14,8 +14,11 @@ from tqdm import tqdm
 
 from merge_exercises import write_examples_to_excel
 
-nlp = spacy.load("ro_core_news_lg")
-TOKENIZED_EXERCISES = {}
+nlp = spacy.load("ro_core_news_lg", disable=["parser", "ner", "lemmatizer", "textcat"])
+
+
+def fix_diacritics(text):
+    return text.replace('ş', 'ș').replace('Ş', 'Ș').replace('ţ', 'ț').replace('Ţ', 'Ț')
 
 
 def read_labels(file_name, include_colored_labels, skip_ambiguous_labels):
@@ -28,8 +31,8 @@ def read_labels(file_name, include_colored_labels, skip_ambiguous_labels):
         #     continue
         if len(row) < 2:
             continue
-        verb, label = row
-        if verb.fill.bgColor.rgb != DEFAULT_COLOR and not include_colored_labels:
+        verb, label = row[0], row[1]
+        if verb.fill and verb.fill.bgColor.rgb != DEFAULT_COLOR and not include_colored_labels:
             continue
         if not label or not label.value:
             continue
@@ -44,22 +47,29 @@ def read_labels(file_name, include_colored_labels, skip_ambiguous_labels):
 
 
 def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, skip_ambiguous_exercises=True):
-    labeled_verbs1 = read_labels('Verbe-cu-etichetă-p1.xlsx', include_colored_labels, skip_ambiguous_labels)
-    labels = defaultdict(lambda: [])
-    for verb, label in labeled_verbs1.items():
-        labels[label].append(verb)
-    labeled_verbs2 = read_labels('Verbe-cu-etichetă-p2.xlsx', include_colored_labels, skip_ambiguous_labels)
-    for verb, label in labeled_verbs2.items():
-        labels[label].append(verb)
     labeled_verbs = {}
-    labeled_verbs.update(labeled_verbs1)
-    labeled_verbs.update(labeled_verbs2)
+    labels = defaultdict(lambda: [])
+    label_files = ['Verbe-cu-etichetă-p1.xlsx', 'Verbe-cu-etichetă-p2.xlsx', 'Verbe-cu-etichetă-p3.xlsx']
+    all_verbs = []
+    for label_file in label_files:
+        labeled_verbs_batch = read_labels(label_file, include_colored_labels, skip_ambiguous_labels)
+        for verb, label in labeled_verbs_batch.items():
+            labels[label].append(verb)
+            all_verbs.append(fix_diacritics(verb))
+        labeled_verbs.update(labeled_verbs_batch)
+    # print(f"All verbs: {len(all_verbs)}")
+    # print(f"Unique verbs: {len(set(all_verbs))}")
+    # print(f"Duplicate verbs: {set(verb for verb in all_verbs if all_verbs.count(verb) > 1)}")
     suffix = ''
     if include_colored_labels:
         suffix += '_colored'
     kw_file = f"keywords{suffix}.json"
+    # return
+    for level in labels:
+        # sort labels to easier spot duplicates
+        labels[level] = sorted(labels[level])
     with open(kw_file, "w", encoding='utf-8') as f:
-        json.dump(labels, f, ensure_ascii=False)
+        json.dump(labels, f, ensure_ascii=False) # , indent=2)
     # print(labeled_verbs)
     # return
     if not skip_ambiguous_exercises:
@@ -67,20 +77,22 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
     ambiguous_exercises_count = 0
     labeled_examples = []
     wb_examples = load_workbook('all_exercises_merged.xlsx')
+    # wb_examples = load_workbook(f'all_exercises_nonlabeled{suffix}.xlsx')
     ws_examples = wb_examples.worksheets[0]
     skipped_exercises = 0
+    skipped_no_verbs = 0
     total_exercises = 0
+    non_labeled_examples = []
     for i, row in tqdm(list(enumerate(ws_examples.values))):
+        if i == 0:
+            continue
         id_, publisher, klass, chapter, page, bloom_label, exercise = row
         # tokenize example
         if not exercise:
             # print("Empty exercise")
             continue
         total_exercises += 1
-        doc = TOKENIZED_EXERCISES.get(i)
-        if not doc:
-            doc = nlp(exercise)
-            TOKENIZED_EXERCISES[i] = doc
+        doc = nlp(exercise)
         local_tally = defaultdict(lambda: 0)
         # count verb tokens
         for token in doc:
@@ -88,7 +100,12 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
             if label:
                 local_tally[label] += 1
         if not local_tally:
-            skipped_exercises += 1
+            verbs = sum([1 for token in doc if token.pos_ == 'VERB'])
+            if verbs and len(exercise) > 30:
+                skipped_exercises += 1
+                non_labeled_examples.append([publisher, klass, chapter, page, bloom_label, exercise])
+            else:
+                skipped_no_verbs += 1
             continue
         max_cat = max(local_tally, key=lambda cat: local_tally[cat])
         max_cats = [cat for cat in local_tally if local_tally[cat] == local_tally[max_cat]]
@@ -100,10 +117,12 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
         else:
             bloom_label = max_cat
         labeled_examples.append([publisher, klass, chapter, page, bloom_label, exercise])
-    print(f"Exercises skipped (no verbs): {skipped_exercises} / {total_exercises}")
+    print(f"Exercises skipped (no relevant verbs/no verbs or too short): {skipped_exercises} ({skipped_no_verbs}) / {total_exercises}")
     print(f"Ambiguous examples: {ambiguous_exercises_count}")
     out_file = f"all_exercises_labeled{suffix}.xlsx"
     write_examples_to_excel(out_file, labeled_examples)
+    out_file = f"all_exercises_nonlabeled{suffix}.xlsx"
+    write_examples_to_excel(out_file, non_labeled_examples)
     wb_examples.close()
 
 
