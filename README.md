@@ -17,7 +17,7 @@ Python version: 3.10
 For the `ro_udv25_romanianrrt_trf` spaCy model, you will need:
 - Python 3.10 (newer versions will **NOT** work)
 - numpy==1.26.4
-- pi==24.0
+- pip==24.0
 - spacy==3.2.5
 
 ### Segment files
