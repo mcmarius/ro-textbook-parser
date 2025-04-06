@@ -174,7 +174,7 @@ def remove_quotes(text):
     return new_text
 
 
-def write_examples_to_excel(file_name, rows):
+def write_examples_to_excel(file_name, rows, include_raw_exercise=False):
     workbook = xlsxwriter.Workbook(file_name)
     worksheet = workbook.add_worksheet()
     cell_format = workbook.add_format({'text_wrap': True, 'font_name': 'Arial', 'font_size': 10})
@@ -185,16 +185,23 @@ def write_examples_to_excel(file_name, rows):
     worksheet.set_column_pixels('E:E', 70, cell_format)
     worksheet.set_column_pixels('F:F', 100, cell_format)
     worksheet.set_column_pixels('G:G', 1600, cell_format)
+    if include_raw_exercise:
+        worksheet.set_column_pixels('H:H', 1600, cell_format)
     # header row
     worksheet.set_row_pixels(0, 50)
+    header = ['id', 'publisher', 'class', 'chapter', 'page', 'bloom_label', 'exercise']
+    if include_raw_exercise:
+        header.append('raw_exercise')
     worksheet.write_row(
         'A1',
-        data=['id', 'publisher', 'class', 'chapter', 'page', 'bloom_label', 'exercise'],
+        data=header,
         cell_format=cell_format
     )
     worksheet.freeze_panes(1, 0)
     for i, exercise in enumerate(rows):
         worksheet.set_row_pixels(i + 1, min(400, max(30, 20 * (exercise[5].count('\n')))))
+        if include_raw_exercise:
+            worksheet.set_row_pixels(i + 1, min(400, max(30, 20 * (exercise[6].count('\n')))))
         worksheet.write_row(f"A{i + 2}", data=[i+1] + exercise, cell_format=cell_format)
     workbook.close()
 

@@ -25,13 +25,13 @@ sns.set_context('paper', font_scale=2)
 
 
 
-def books_plots(allow_ties=True, by_chapter=False, with_colors=False):
+def books_plots(allow_ties='ties', by_chapter=False, with_colors=False, split_examples=True):
     # duplicates_values = [False, True]
     # allow_ties_values = [False, True]
     # for duplicates in duplicates_values:
     # for allow_ties in allow_ties_values:
     # by_chapter = False
-    stats = books_stats(True, allow_ties, by_chapter=by_chapter, with_colors=with_colors)
+    stats = books_stats(True, allow_ties, by_chapter=by_chapter, with_colors=with_colors, split_examples=split_examples)
     if by_chapter:
         id_vars = ['grade', 'publisher', 'chapter']
     else:
@@ -46,8 +46,10 @@ def books_plots(allow_ties=True, by_chapter=False, with_colors=False):
     file_name = 'counts'
     if by_chapter:
         file_name += '_by_chapter'
-    if allow_ties:
+    if allow_ties == 'ties':
         file_name += '_ties'
+    elif allow_ties == 'break':
+        file_name += '_break_ties'
     else:
         file_name += '_no_ties'
     if with_colors:
@@ -55,15 +57,19 @@ def books_plots(allow_ties=True, by_chapter=False, with_colors=False):
     plt.savefig(f"plots/{file_name}.pdf", bbox_inches='tight', pad_inches=0.1)
 
 
-def books_stats(duplicates=True, allow_ties=True, by_chapter=False, with_colors=False):
+def books_stats(duplicates=True, allow_ties='ties', by_chapter=False, with_colors=False, split_examples=True):
     all_stats = defaultdict(lambda: [])
     kw_file = 'keywords.json'
     suffix = ''
     if with_colors:
         suffix += '_colored'
         kw_file = 'keywords_colored.json'
-    if allow_ties:
+    if allow_ties == 'ties':
         suffix += '_with_ties'
+    elif allow_ties == 'break':
+        suffix += '_break_ties'
+    if split_examples:
+        suffix += '_split'
     in_file = f"all_exercises_labeled{suffix}.xlsx"
     exercises_wb = load_workbook(in_file, read_only=True)
     # discard id
@@ -239,6 +245,6 @@ def stats_for_lines_old(lines, duplicates, allow_ties, kw_file='keywords.json'):
 
 if __name__ == "__main__":
     for chapter in [False, True]:
-        for tie in [False, True]:
+        for tie in ['break']: # [False, True]:
             for color in [False, True]:
                 books_plots(tie, chapter, color)
