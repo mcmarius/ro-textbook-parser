@@ -131,6 +131,11 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
         doc = nlp(raw_exercise)
         if sentence_split:
             if remove_ambiguities:
+                # in each sentence, use dependency parsing
+                #   for each root
+                #     (root.children if child.pos_ in ('VERB', 'AUX')) to identify other main verbs
+                #     extract each such sub-sentence with token.subtree and create a new example
+                #     for sub-sentences that still have multiple labels, take the label from the first verb
                 exercises = []
                 for exercise in doc.sents:
                     roots = [token for token in exercise if token.dep_ == 'ROOT']
@@ -167,23 +172,6 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
                 exercise_text = exercise
                 exercise_raw = exercise
             total_exercises += 1
-            # local_tally = defaultdict(lambda: 0)
-            # count verb tokens
-            # print(exercise)
-            # for token in exercise:
-            #     label = labeled_verbs.get(str(token).lower())
-            #     if label:
-            #         # print(f"verb {token} w/ label {label}")
-            #         local_tally[label] += 1
-            # if not local_tally:
-            #     verbs = sum([1 for token in exercise if token.pos_ in ('VERB', 'AUX')])
-            #     if verbs and len(exercise) > 30:
-            #         skipped_exercises += 1
-            #         non_labeled_examples.append([publisher, klass, chapter, page, bloom_label, exercise_text])
-            #     else:
-            #         skipped_no_verbs += 1
-            #     continue
-            # max_cat = max(local_tally, key=lambda cat: local_tally[cat])
             max_cat, local_tally, selected_verbs, label_error = label_example(exercise, labeled_verbs)
             if not max_cat:
                 if label_error == 'NO_LABEL':
@@ -197,12 +185,6 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
                 if remove_ambiguities:
                     bloom_label = labeled_verbs.get(str(selected_verbs[0]).lower())
                     broken_ties += 1
-                    # in each sentence, use dependency parsing
-                    #   for each root
-                    #     (root.children if child.pos_ in ('VERB', 'AUX')) to identify other main verbs
-                    #     extract each such sub-sentence with token.subtree and create a new example
-                    #     for sub-sentences that still have multiple labels, take the label from the first verb
-                    # continue
                 else:
                     ambiguous_exercises_count += 1
                     if skip_ambiguous_exercises:
@@ -228,55 +210,3 @@ if __name__ == "__main__":
     label_examples(include_colored_labels=False, skip_ambiguous_exercises=False, sentence_split=True, remove_ambiguities=True)
     label_examples(include_colored_labels=True, skip_ambiguous_exercises=False, sentence_split=True, remove_ambiguities=True)
     #label_examples(include_colored_labels=False, skip_ambiguous_exercises=False)
-
-"""
-def read_csv(file_name):
-    with open(file_name, newline='') as csvfile:
-        reader = csv.DictReader(csvfile, delimiter=',', quotechar='"')
-        lines = []
-        for row in reader:
-            row['text'] = row['text'].strip()
-            lines.append(row)
-        return lines
-
-def write_csv(file_name, rows):
-    with open(file_name, 'w', newline='') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=rows[0].keys(), delimiter=',', quotechar='"')
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
-
-def read_chapter(book, chapter):
-    with open(f"exercises/{book.strip('.pdf')}-{chapter}.txt") as f:
-        return [line.strip() for line in f.readlines()]
-
-def read_book(book, num_chapters):
-    lines = []
-    for chapter in range(1, num_chapters + 1):
-        lines += read_chapter(book, chapter)
-    return lines
-
-
-def label_text():
-    labeled_examples = read_csv('misc/texts_labeled.csv')
-    lines = [example['text'] for example in labeled_examples]
-    current_book = BOOK_LIST[4]
-    num_chapters = len(cfg[current_book]['chapters'])
-    book_lines = read_book(current_book, num_chapters)
-
-    labeled_book_lines = []
-    for book_line in tqdm.tqdm(book_lines):
-        max_len = 0
-        max_example = None
-        max_lcs = ''
-        for example in labeled_examples:
-            lcs = STree.STree([example['text'], book_line]).lcs()
-            if len(lcs) > max_len:
-                max_len = len(lcs)
-                max_example = example
-                max_lcs = lcs
-        if max_example and max_len > 15:
-            # print(f'max lcs: {max_lcs}')
-            labeled_book_lines.append({'text': book_line, 'label': max_example['label']})
-    return labeled_book_lines
-"""
