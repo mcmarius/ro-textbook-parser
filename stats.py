@@ -81,7 +81,7 @@ def books_stats(duplicates=True, allow_ties='ties', by_chapter=False, with_color
     all_books = BOOK_LIST
     selected_books = []
     for book in all_books:
-        for publisher in ['ArtKlett', 'Booklet', 'Corint', 'Litera', 'CDPress', 'EDP', 'Intuitext', 'Paralela45', 'ArsLibri', 'Aramis', 'Artemis']:
+        for publisher in ['ArtKlett', 'Booklet', 'Corint', 'Litera', 'CDPress', 'EDP', 'Intuitext', 'Paralela45', 'ArsLibri', 'Aramis']:
             if publisher in book:
                 selected_books.append(book)
     all_stats = defaultdict(lambda: [])

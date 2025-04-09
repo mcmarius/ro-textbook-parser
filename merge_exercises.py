@@ -234,5 +234,5 @@ def merge_exercises():
 
 if __name__ == "__main__":
     # merge_gemini_exercises()
-    deduplicate_exercises()
+    # deduplicate_exercises()
     merge_exercises()

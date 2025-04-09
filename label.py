@@ -211,8 +211,11 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
 
 
 if __name__ == "__main__":
-    # label_examples(include_colored_labels=False, skip_ambiguous_exercises=True)
-    # label_examples(include_colored_labels=True, skip_ambiguous_exercises=True)
+    label_examples(include_colored_labels=False, skip_ambiguous_exercises=True)
+    label_examples(include_colored_labels=True, skip_ambiguous_exercises=True)
     label_examples(include_colored_labels=False, skip_ambiguous_exercises=False, sentence_split=True, remove_ambiguities=True)
     label_examples(include_colored_labels=True, skip_ambiguous_exercises=False, sentence_split=True, remove_ambiguities=True)
-    # label_examples(include_colored_labels=False, skip_ambiguous_exercises=False)
+    label_examples(include_colored_labels=False, skip_ambiguous_exercises=False, sentence_split=True, remove_ambiguities=False)
+    label_examples(include_colored_labels=True, skip_ambiguous_exercises=False, sentence_split=True, remove_ambiguities=False)
+    label_examples(include_colored_labels=False, skip_ambiguous_exercises=False, remove_ambiguities=False)
+    label_examples(include_colored_labels=True, skip_ambiguous_exercises=False, remove_ambiguities=False)
