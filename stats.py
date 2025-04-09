@@ -42,7 +42,6 @@ def books_plots(allow_ties='ties', by_chapter=False, with_colors=False, split_ex
         sns.catplot(col='publisher', row='grade', x='chapter', y='count', data=dfm, hue='bloom_cat', kind='bar') # , col_wrap=2)
     else:
         sns.catplot(col='publisher', x='grade', y='count', data=dfm, hue='bloom_cat', kind='bar', col_wrap=4)
-    # plt.show()
     file_name = 'counts'
     if by_chapter:
         file_name += '_by_chapter'
@@ -247,4 +246,5 @@ if __name__ == "__main__":
     for chapter in [False, True]:
         for tie in ['break']: # [False, True]:
             for color in [False, True]:
+                print(f"chapter: {chapter}, color: {color}")
                 books_plots(tie, chapter, color)

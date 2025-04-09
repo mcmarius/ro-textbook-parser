@@ -50,12 +50,15 @@ def read_labels(file_name, include_colored_labels, skip_ambiguous_labels):
 def label_example(exercise, labeled_verbs):
     local_tally = defaultdict(lambda: 0)
     selected_verbs = []
-    for token in exercise:
-        label = labeled_verbs.get(str(token).lower())
+    for i, token in enumerate(exercise):
+        if str(token) == '-ți':
+            selected_verb = (str(exercise[i - 1]) + str(token)).lower()
+        else:
+            selected_verb = str(token).lower()
+        label = labeled_verbs.get(selected_verb)
         if label:
-            # print(f"verb {token} w/ label {label}")
             local_tally[label] += 1
-            selected_verbs.append(token)
+            selected_verbs.append(selected_verb)
     if not local_tally:
         all_verbs = sum([1 for token in exercise if token.pos_ in ('VERB', 'AUX')])
         if all_verbs and len(exercise) > 30:
@@ -92,13 +95,13 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
     if include_colored_labels:
         suffix += '_colored'
     kw_file = f"keywords{suffix}.json"
+    # print(labeled_verbs)
     # return
     for level in labels:
         # sort labels to easier spot duplicates
         labels[level] = sorted(set(labels[level]))
     with open(kw_file, "w", encoding='utf-8') as f:
         json.dump(labels, f, ensure_ascii=False) # , indent=2)
-    # print(labeled_verbs)
     # return
     if not skip_ambiguous_exercises:
         if remove_ambiguities:
@@ -126,7 +129,7 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
         id_, publisher, klass, chapter, page, bloom_label, raw_exercise = row
         # tokenize example
         if not raw_exercise:
-            # print("Empty exercise")
+            # print(f"Empty exercise: {i}")
             continue
         doc = nlp(raw_exercise)
         if sentence_split:
@@ -169,8 +172,8 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
                     exercise_text = exercise.text
                     exercise_raw = exercise_text
             else:
-                exercise_text = exercise
-                exercise_raw = exercise
+                exercise_text = exercise.text
+                exercise_raw = exercise_text
             total_exercises += 1
             max_cat, local_tally, selected_verbs, label_error = label_example(exercise, labeled_verbs)
             if not max_cat:
@@ -193,20 +196,23 @@ def label_examples(include_colored_labels=False, skip_ambiguous_labels=True, ski
             else:
                 bloom_label = max_cat
             # print(f"label {exercise_text}\n\twith {bloom_label}")
-            labeled_examples.append([publisher, klass, chapter, page, bloom_label, exercise_text, exercise_raw])
+            if sentence_split:
+                labeled_examples.append([publisher, klass, chapter, page, bloom_label, exercise_text, exercise_raw])
+            else:
+                labeled_examples.append([publisher, klass, chapter, page, bloom_label, exercise_text])
     print(f"Exercises skipped (no relevant verbs/no verbs or too short): {skipped_exercises} ({skipped_no_verbs}) / {total_exercises}")
     print(f"Ambiguous examples: {ambiguous_exercises_count}, broken ties: {broken_ties}")
     # return
     out_file = f"all_exercises_labeled{suffix}.xlsx"
-    write_examples_to_excel(out_file, labeled_examples, True)
+    write_examples_to_excel(out_file, labeled_examples, sentence_split)
     out_file = f"all_exercises_nonlabeled{suffix}.xlsx"
     write_examples_to_excel(out_file, non_labeled_examples)
     wb_examples.close()
 
 
 if __name__ == "__main__":
-    #label_examples(include_colored_labels=False, skip_ambiguous_exercises=True)
-    #label_examples(include_colored_labels=True, skip_ambiguous_exercises=True)
+    # label_examples(include_colored_labels=False, skip_ambiguous_exercises=True)
+    # label_examples(include_colored_labels=True, skip_ambiguous_exercises=True)
     label_examples(include_colored_labels=False, skip_ambiguous_exercises=False, sentence_split=True, remove_ambiguities=True)
     label_examples(include_colored_labels=True, skip_ambiguous_exercises=False, sentence_split=True, remove_ambiguities=True)
-    #label_examples(include_colored_labels=False, skip_ambiguous_exercises=False)
+    # label_examples(include_colored_labels=False, skip_ambiguous_exercises=False)
