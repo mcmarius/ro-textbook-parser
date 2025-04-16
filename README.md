@@ -1,5 +1,9 @@
 # Romanian Textbook parser
 
+### Textbooks
+
+Download the textbooks from https://manuale.edu.ro and place the PDFs in a folder called `data`.
+
 ### Requirements
 
 Python version: 3.10
