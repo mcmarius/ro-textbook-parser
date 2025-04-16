@@ -37,7 +37,7 @@ pydantic==1.8.2
 PyYAML==6.0.2
 regex==2024.11.6
 requests==2.32.3
-ro-udv25-romanianrrt-trf @ file:///home/marius/Documents/altele/facultate/bea/pip/ro_udv25_romanianrrt_trf-any-py3-none-any.whl#sha256=3ad1f6b565c183e4ba0fa1656404ec0c35da39e4d779adad4f3ed6ba57e05741
+ro-udv25-romanianrrt-trf @ file:///home/user/bea/pip/ro_udv25_romanianrrt_trf-any-py3-none-any.whl#sha256=3ad1f6b565c183e4ba0fa1656404ec0c35da39e4d779adad4f3ed6ba57e05741
 smart-open==6.4.0
 spacy==3.2.5
 spacy-alignments==0.9.1
