@@ -37,11 +37,15 @@ def books_plots(allow_ties='ties', by_chapter=False, with_colors=False, split_ex
     else:
         id_vars = ['grade', 'publisher']
     df = pd.DataFrame.from_dict(stats)
-    dfm = df.melt(id_vars=id_vars, var_name='bloom_cat', value_name='count')
-    if by_chapter:
-        sns.catplot(col='publisher', row='grade', x='chapter', y='count', data=dfm, hue='bloom_cat', kind='bar') # , col_wrap=2)
+    if allow_ties == 'multitask':
+        var_name = 'Bloom categories'
     else:
-        sns.catplot(col='publisher', x='grade', y='count', data=dfm, hue='bloom_cat', kind='bar', col_wrap=4)
+        var_name = 'Bloom category'
+    dfm = df.melt(id_vars=id_vars, var_name=var_name, value_name='count')
+    if by_chapter:
+        sns.catplot(row='publisher', col='grade', x='chapter', y='count', data=dfm, hue=var_name, kind='bar') # , col_wrap=2)
+    else:
+        sns.catplot(col='publisher', x='grade', y='count', data=dfm, hue=var_name, kind='bar', col_wrap=4)
     file_name = 'counts'
     if by_chapter:
         file_name += '_by_chapter'
@@ -49,10 +53,14 @@ def books_plots(allow_ties='ties', by_chapter=False, with_colors=False, split_ex
         file_name += '_ties'
     elif allow_ties == 'break':
         file_name += '_break_ties'
+    elif allow_ties == 'multitask':
+        file_name += '_multitask'
     else:
         file_name += '_no_ties'
     if with_colors:
         file_name += '_colored'
+    if not split_examples:
+        file_name += '_full_exercises'
     plt.savefig(f"plots/{file_name}.pdf", bbox_inches='tight', pad_inches=0.1)
 
 
@@ -63,7 +71,7 @@ def books_stats(duplicates=True, allow_ties='ties', by_chapter=False, with_color
     if with_colors:
         suffix += '_colored'
         kw_file = 'keywords_colored.json'
-    if allow_ties == 'ties':
+    if allow_ties in ['ties', 'multitask']:
         suffix += '_with_ties'
     elif allow_ties == 'break':
         suffix += '_break_ties'
@@ -76,8 +84,10 @@ def books_stats(duplicates=True, allow_ties='ties', by_chapter=False, with_color
     # discard header
     exercises = exercises[1:]
     # TODO: decide how to handle "with ties"
-    if allow_ties:
+    if allow_ties == 'task':
         exercises = count_in_all_categories(exercises)
+    elif allow_ties == 'multitask':
+        exercises = count_multitask(exercises)
     all_books = BOOK_LIST
     selected_books = []
     for book in all_books:
@@ -85,8 +95,12 @@ def books_stats(duplicates=True, allow_ties='ties', by_chapter=False, with_color
             if publisher in book:
                 selected_books.append(book)
     all_stats = defaultdict(lambda: [])
-    default_labels = {'apply': 0, 'analyze': 0, 'create': 0, 'evaluate': 0, 'remember': 0, 'understand': 0}
-    sort_idx = {'remember': 1, 'understand': 2, 'apply': 3, 'analyze': 4, 'evaluate': 5, 'create': 6}
+    if allow_ties == 'multitask':
+        default_labels = {'L1,L2 + L5,L6': 0, 'L1,L2 + L3,L4': 0, 'L3,L4 + L5,L6': 0, 'other': 0}
+        sort_idx = {'L1,L2 + L5,L6': 1, 'L1,L2 + L3,L4': 2, 'L3,L4 + L5,L6': 3, 'other': 4}
+    else:
+        default_labels = {'apply': 0, 'analyze': 0, 'create': 0, 'evaluate': 0, 'remember': 0, 'understand': 0}
+        sort_idx = {'remember': 1, 'understand': 2, 'apply': 3, 'analyze': 4, 'evaluate': 5, 'create': 6}
     for book in selected_books:
         grade, _subject, _idx, publisher = re.findall('Manual_Cls (\d{1,2})_([\w| ]+)_(\d{1,2})_(\w+)\.pdf', book)[0]
         if by_chapter:
@@ -129,6 +143,25 @@ def count_in_all_categories(exercises):
                 new_exercises.append(new_exercise)
         else:
             new_exercises.append(new_exercise)
+    return new_exercises
+
+
+def count_multitask(exercises):
+    new_exercises = []
+    for exercise in exercises:
+        if '/' not in exercise[4]:
+            continue
+        labels = exercise[4].split('/')
+        new_exercise = list(exercise)
+        if ('remember' in labels or 'understand' in labels) and ('evaluate' in labels or 'create' in labels) and ('apply' not in labels and 'analyze' not in labels):
+            new_exercise[4] = 'L1,L2 + L5,L6'
+        elif ('remember' in labels or 'understand' in labels) and ('evaluate' not in labels and 'create' not in labels) and ('apply' in labels or 'analyze' in labels):
+            new_exercise[4] = 'L1,L2 + L3,L4'
+        elif ('remember' not in labels and 'understand' not in labels) and ('evaluate' in labels or 'create' in labels) and ('apply' in labels or 'analyze' in labels):
+            new_exercise[4] = 'L3,L4 + L5,L6'
+        else:
+            new_exercise[4] = 'other'
+        new_exercises.append(new_exercise)
     return new_exercises
 
 
@@ -244,7 +277,8 @@ def stats_for_lines_old(lines, duplicates, allow_ties, kw_file='keywords.json'):
 
 if __name__ == "__main__":
     for chapter in [False, True]:
-        for tie in ['break']: # [False, True]:
+        for tie in ['multitask']: # ['break']: # [False, True]:
             for color in [False, True]:
-                print(f"chapter: {chapter}, color: {color}")
-                books_plots(tie, chapter, color)
+                for split in [False, True]:
+                    print(f"chapter: {chapter}, color: {color}, split examples: {split}")
+                    books_plots(tie, chapter, color, split)
