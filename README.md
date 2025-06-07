@@ -4,6 +4,13 @@
 
 Download the textbooks from https://manuale.edu.ro and place the PDFs in a folder called `data`.
 
+### Labeled exercises
+
+The labeled exercises can be found inside the `Bloom_level_exercises` folder:
+- `all_exercises_labeled` contains only full exercises with a single label
+- `all_exercises_labeled_break_ties_split` contains exercises with a single label, but if the initial exercise contains two Bloom verbs, we (1) split by sentence and create multiple sub-exercises and (2) if a sentence still contains two or more Bloom verbs, we assign the label of the first verb
+- `all_exercises_labeled_with_ties` contains full exercises with multiple labels
+
 ### Requirements
 
 Python version: 3.10
