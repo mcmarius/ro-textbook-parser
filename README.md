@@ -2,6 +2,8 @@
 
 This repository is associated with our [paper](https://aclanthology.org/2025.bea-1.56.pdf) _"Assessing Critical Thinking Components in Romanian Secondary School Textbooks: A Data Mining Approach to the ROTEX Corpus"_ for [BEA 2025](https://sig-edu.org/bea/2025) at [ACL 2025](https://2025.aclweb.org/).
 
+You can find our presentation [here](BEA_2025_presentation.pdf).
+
 ### Textbooks
 
 Download the textbooks from https://manuale.edu.ro and place the PDFs in a folder called `data`.
