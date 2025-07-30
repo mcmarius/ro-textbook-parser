@@ -1,5 +1,7 @@
 # Romanian Textbook parser
 
+This repository is associated with our [paper](https://aclanthology.org/2025.bea-1.56.pdf) _"Assessing Critical Thinking Components in Romanian Secondary School Textbooks: A Data Mining Approach to the ROTEX Corpus"_ for [BEA 2025](https://sig-edu.org/bea/2025) at [ACL 2025](https://2025.aclweb.org/).
+
 ### Textbooks
 
 Download the textbooks from https://manuale.edu.ro and place the PDFs in a folder called `data`.
@@ -91,4 +93,35 @@ This step takes around 1.5-2 minutes for each configuration.
 
 ```
 python stats.py
+```
+
+
+### Citation
+
+```bib
+@inproceedings{chitez-etal-2025-assessing,
+    title = "Assessing Critical Thinking Components in {R}omanian Secondary School Textbooks: A Data Mining Approach to the {ROTEX} Corpus",
+    author = "Chitez, Madalina  and
+      Dinu, Liviu  and
+      Micluta-Campeanu, Marius  and
+      Bucur, Ana-Maria  and
+      Rogobete, Roxana",
+    editor = {Kochmar, Ekaterina  and
+      Alhafni, Bashar  and
+      Bexte, Marie  and
+      Burstein, Jill  and
+      Horbach, Andrea  and
+      Laarmann-Quante, Ronja  and
+      Tack, Ana{\"i}s  and
+      Yaneva, Victoria  and
+      Yuan, Zheng},
+    booktitle = "Proceedings of the 20th Workshop on Innovative Use of NLP for Building Educational Applications (BEA 2025)",
+    month = jul,
+    year = "2025",
+    address = "Vienna, Austria",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.bea-1.56/",
+    pages = "780--793",
+    ISBN = "979-8-89176-270-1",
+}
 ```
