@@ -2,7 +2,7 @@
 
 This repository is associated with our [paper](https://aclanthology.org/2025.bea-1.56.pdf) _"Assessing Critical Thinking Components in Romanian Secondary School Textbooks: A Data Mining Approach to the ROTEX Corpus"_ for [BEA 2025](https://sig-edu.org/bea/2025) at [ACL 2025](https://2025.aclweb.org/).
 
-You can find our presentation [here](BEA_2025_presentation.pdf).
+You can find our presentation [here](BEA_2025_presentation.pdf), the pre-recorded clip [here](http://assets.underline.io/video/80665/file/abr/c994e4829a8bacf1d9344b90380867631080p.m3u8) (using `yt-dlp --no-part --restrict-filenames -N 4 --referer "https://underline.io/" <url>`) and the live recording [here](https://us06web.zoom.us/rec/share/WgiBGWyVOprUndOa8MIxUDISImBWQxL9WyFNX_IoYvdi5xwpBcGdIUz6GqCxBWDg.-6zUsJdX66wgD8mo) (timestamp 04:16:15).
 
 ### Textbooks
 
@@ -99,6 +99,8 @@ python stats.py
 
 
 ### Citation
+
+If you found this work helpful, please cite our paper:
 
 ```bib
 @inproceedings{chitez-etal-2025-assessing,
